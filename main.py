@@ -23,6 +23,7 @@ def run_server(logger, server_class=HTTPServer, handler_class=HttpHandler):
             await asyncio.Future()
         except KeyboardInterrupt:
             server.unregister()
+    asyncio.run(serve())
 
 
 def start_http_server():
