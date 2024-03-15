@@ -37,8 +37,8 @@ if __name__ == "__main__":
     http_server_process = multiprocessing.Process(target=start_http_server)
     http_server_process.start()
 
-    # socket_server = multiprocessing.Process(target=start_socket_server)
-    # socket_server.start()
+    socket_server = multiprocessing.Process(target=start_socket_server)
+    socket_server.start()
 
     http_server_process.join()
-    # socket_server.join()
+    socket_server.join()
