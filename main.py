@@ -7,8 +7,8 @@ from server import Server
 from http_handler import HttpHandler
 
 
-def run_http_server(server_class=HTTPServer, handler_class=HttpHandler):
-    server_address = ("", 3000)
+async def run_http_server(server_class=HTTPServer, handler_class=HttpHandler):
+    server_address = ("localhost", 3000)
     http = server_class(server_address, handler_class)
     try:
         http.serve_forever()
@@ -16,9 +16,9 @@ def run_http_server(server_class=HTTPServer, handler_class=HttpHandler):
         http.server_close()
 
 
-def run_server(logger, server_class=HTTPServer, handler_class=HttpHandler):
+async def run_server(logger, server_class=HTTPServer, handler_class=HttpHandler):
     server = Server(logger)
-    async with websockets.serve(server.ws_handler, "127.0.0.1", 5000):
+    async with websockets.serve(server.ws_handler, "localhost", 5000):
         try:
             await asyncio.Future()
         except KeyboardInterrupt:
@@ -26,12 +26,12 @@ def run_server(logger, server_class=HTTPServer, handler_class=HttpHandler):
     asyncio.run(serve())
 
 
-def start_http_server():
-    run_http_server()
+async def start_http_server():
+    await run_http_server()
 
 
-def start_socket_server():
-    run_server()
+async def start_socket_server():
+    await run_server()
 
 
 if __name__ == "__main__":
