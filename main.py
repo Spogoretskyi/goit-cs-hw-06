@@ -55,7 +55,7 @@ def run_server(config):
         while True:
             data, addr = sock.recvfrom(config["SOCKET_SERVER"]["buffer_size"])
             logging.info(f"Get message from {addr}: {data.decode()}")
-            save_data(logger, config, data)
+            save_data(config, data)
     except Exception as e:
         logging.error(f"Server error: {e}")
     finally:
