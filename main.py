@@ -1,44 +1,96 @@
-import mimetypes
-import pathlib
-import urllib.parse
 import multiprocessing
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from server import Server
+import socket
+import logging
+import json
+from urllib.parse import unquote_plus
 from http_handler import HttpHandler
+from http.server import HTTPServer
+from pymongo.mongo_client import MongoClient
 
 
-async def run_http_server(server_class=HTTPServer, handler_class=HttpHandler):
-    server_address = ("localhost", 3000)
-    http = server_class(server_address, handler_class)
+def save_data(config, data):
+    client = MongoClient(config["DB"]["uri"])
+    db = client.homework
+    parse_data = unquote_plus(data.decode())
     try:
-        http.serve_forever()
+        parse_data = {
+            key: value for key, value in [el.split("=") for el in parse_data.split("&")]
+        }
+        db.messages.insert_one(parse_data)
+    except ValueError as e:
+        logging.error(f"Parse error: {e}")
+    except Exception as e:
+        logging.error(f"Failed to save: {e}")
+    finally:
+        client.close()
+
+
+def run_http_server(config):
+    http_server = HTTPServer(
+        (config["HTTP_SERVER"]["host"], config["HTTP_SERVER"]["port"]), HttpHandler
+    )
+
+    try:
+        logging.info(
+            f"Server started on http://{config['HTTP_SERVER']['host']}:{config['HTTP_SERVER']['port']}"
+        )
+        http_server.serve_forever()
     except KeyboardInterrupt:
-        http.server_close()
+        http_server.server_close()
+    except Exception as e:
+        logging.error(f"Server error: {e}")
+    finally:
+        logging.info("Http server stopped")
+        http_server.server_close()
 
 
-async def run_server(logger, server_class=HTTPServer, handler_class=HttpHandler):
-    server = Server(logger)
-    async with websockets.serve(server.ws_handler, "localhost", 5000):
-        try:
-            await asyncio.Future()
-        except KeyboardInterrupt:
-            server.unregister()
-    asyncio.run(serve())
+def run_server(config):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((config["SOCKET_SERVER"]["host"], config["SOCKET_SERVER"]["port"]))
+    logging.info(
+        f"Socket server started on socket://{config['SOCKET_SERVER']['host']}:{config['SOCKET_SERVER']['port']}"
+    )
+
+    try:
+        while True:
+            data, addr = sock.recvfrom(config["SOCKET_SERVER"]["buffer_size"])
+            logging.info(f"Get message from {addr}: {data.decode()}")
+            save_data(logger, config, data)
+    except Exception as e:
+        logging.error(f"Server error: {e}")
+    finally:
+        logging.info("Server stopped")
+        sock.close()
 
 
-async def start_http_server():
-    await run_http_server()
+def start_http_server(config):
+    run_http_server(config)
 
 
-async def start_socket_server():
-    await run_server()
+def start_socket_server(config):
+    run_server(config)
 
 
 if __name__ == "__main__":
-    http_server_process = multiprocessing.Process(target=start_http_server)
+    logging.basicConfig(
+        level=logging.INFO, format="%(asctime)s - %(threadName)s - %(message)s"
+    )
+
+    try:
+        config = json.load(open("config.json"))
+    except FileNotFoundError:
+        logging.error(f"Error while opening config.json. Using default values.")
+
+    http_server_process = multiprocessing.Process(
+        target=start_http_server,
+        args=(config,),
+    )
     http_server_process.start()
 
-    socket_server = multiprocessing.Process(target=start_socket_server)
+    socket_server = multiprocessing.Process(
+        target=start_socket_server,
+        args=(config,),
+    )
     socket_server.start()
 
     http_server_process.join()
