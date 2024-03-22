@@ -2,9 +2,9 @@ FROM python:3.11
 
 ENV APP_HOME /app
 
-COPY . .
-
 WORKDIR $APP_HOME
+
+COPY . .
 
 RUN pip install -r requirements.txt
 
