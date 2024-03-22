@@ -14,7 +14,8 @@ class HttpHandler(BaseHTTPRequestHandler):
         except FileNotFoundError:
             logging.error(f"Error while opening config.json. Using default values.")
 
-        data = self.rfile.read(int(self.headers["Content-Length"]))
+        size = self.headers.get("Content-Length")
+        data = self.rfile.read(int(size)).decode()
         logging.info(
             f"POST request: Path: {self.path}; Headers: {self.headers}; Data: {data}"
         )
