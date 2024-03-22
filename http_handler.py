@@ -46,8 +46,9 @@ class HttpHandler(BaseHTTPRequestHandler):
             logging.info(f"GET request: message: {pr_url}")
             self.send_html_file("message.html")
         else:
-            if pathlib.Path().joinpath(pr_url.path[1:]).exists():
-                self.send_static()
+            file = pathlib.Path().joinpath(pr_url.path[1:]).exists()
+            if file.exists():
+                self.send_static(file)
             else:
                 logging.info(f"GET request: URL error: {pr_url}")
                 self.send_html_file("error.html", 404)
@@ -59,13 +60,14 @@ class HttpHandler(BaseHTTPRequestHandler):
         with open(filename, "rb") as fd:
             self.wfile.write(fd.read())
 
-    def send_static(self):
-        self.send_response(200)
-        mt = mimetypes.guess_type(self.path)
-        if mt:
-            self.send_header("Content-type", mt[0])
-        else:
-            self.send_header("Content-type", "text/plain")
-            self.end_headers()
-        with open(f".{self.path}", "rb") as file:
-            self.wfile.write(file.read())
+    def send_static(self, filename, status=200):
+        self.send_response(status)
+        mt = (
+            mimetypes.guess_type(filename)[0]
+            if mimetypes.guess_type(filename)[0]
+            else "text/plain"
+        )
+        self.send_header("Content-type", mt)
+        self.end_headers()
+        with open(filename, "rb") as f:
+            self.wfile.write(f.read())
