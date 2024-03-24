@@ -66,6 +66,6 @@ class HttpHandler(BaseHTTPRequestHandler):
             self.send_header("Content-type", mt[0])
         else:
             self.send_header("Content-type", "text/plain")
-            self.end_headers()
+        self.end_headers()
         with open(f".{self.path}", "rb") as file:
             self.wfile.write(file.read())
